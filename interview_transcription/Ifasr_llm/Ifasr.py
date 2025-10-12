@@ -11,7 +11,7 @@ import urllib.parse
 import datetime
 import warnings
 import wave  # 使用Python内置的wave模块，无需额外安装
-import orderResult
+from . import orderResult
 
 # 导入音频处理库（用于获取MP3等格式的时长）
 try:
