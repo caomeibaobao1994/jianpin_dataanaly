@@ -1,6 +1,6 @@
 # 访谈音频批量处理系统
 
-完整的访谈音频转写和清洗流程：MP3 → 讯飞转写 → 合并段落 → 智谱AI优化
+完整的访谈音频转写和清洗流程：MP3 → 讯飞转写 → 合并段落 → 智谱AI优化 → 减贫措施分析
 
 ## 📋 处理流程
 
@@ -23,10 +23,16 @@ mp3data/
    - 口语转书面语
    - 优化句子结构
         ↓
+   【减贫措施智能分析】✨ 新功能
+   - 提取住房、教育、医疗等9个维度的减贫措施
+   - 总结受访者生活变化
+   - 识别工作亮点
+        ↓
 output/
-  ├── 1_api_responses/    # API原始响应JSON
-  ├── 2_merged_texts/     # 合并段落后的文本
-  └── 3_ai_optimized/     # AI智能优化文本
+  ├── 1_api_responses/              # API原始响应JSON
+  ├── 2_merged_texts/               # 合并段落后的文本
+  ├── 3_ai_optimized/               # AI智能优化文本
+  └── 4_poverty_reduction_summary/  # 减贫措施分析报告 ✨
 ```
 
 ## 🚀 快速开始
@@ -55,11 +61,14 @@ ZHIPU_API_KEY = "你的智谱API_KEY"
 ### 3. 批量处理音频
 
 ```bash
-# 处理mp3data文件夹中的所有音频（含AI优化）
+# 完整处理（转写+合并+AI优化+减贫分析）- 推荐！
 python batch_processor.py -i mp3data --ai
 
-# 仅转写和合并，不使用AI优化（更快，不消耗AI配额）
+# 仅转写和合并，不使用AI优化
 python batch_processor.py -i mp3data --no-ai
+
+# 不进行减贫措施分析
+python batch_processor.py -i mp3data --ai --no-poverty-analysis
 
 # 指定输出目录
 python batch_processor.py -i mp3data -o my_output --ai
@@ -67,24 +76,31 @@ python batch_processor.py -i mp3data -o my_output --ai
 
 ## 📁 输出文件结构
 
-处理完成后，每个音频文件会生成3个输出文件：
+处理完成后，每个音频文件会生成5个输出文件：
 
 ```
 output/
-├── 1_api_responses/          # API原始响应
+├── 1_api_responses/                    # API原始响应
 │   ├── interview1_api.json
 │   ├── interview2_api.json
 │   └── interview3_api.json
 │
-├── 2_merged_texts/           # 合并段落文本
+├── 2_merged_texts/                     # 合并段落文本
 │   ├── interview1_merged.txt
 │   ├── interview2_merged.txt
 │   └── interview3_merged.txt
 │
-└── 3_ai_optimized/           # AI优化文本
-    ├── interview1_ai.txt
-    ├── interview2_ai.txt
-    └── interview3_ai.txt
+├── 3_ai_optimized/                     # AI优化文本
+│   ├── interview1_ai.txt
+│   ├── interview2_ai.txt
+│   └── interview3_ai.txt
+│
+└── 4_poverty_reduction_summary/        # 减贫措施分析 ✨
+    ├── interview1_poverty_summary.txt
+    ├── interview1_poverty_summary.json
+    ├── interview2_poverty_summary.txt
+    ├── interview2_poverty_summary.json
+    └── ...
 ```
 
 ### 输出文件说明
@@ -94,6 +110,7 @@ output/
 | `1_api_responses/` | 讯飞API原始JSON响应 | 备份原始数据，可重新解析 |
 | `2_merged_texts/` | 合并段落后的文本 | 保留口语化表达，真实还原访谈 |
 | `3_ai_optimized/` | AI智能优化文本 | 规范书面表达，适合存档和分析 |
+| `4_poverty_reduction_summary/` | 减贫措施分析报告（txt+json） | 结构化提取9大维度减贫措施 |
 
 ## 📊 输出示例对比
 
@@ -117,6 +134,43 @@ output/
 【访谈者】比如说盖房子，或者孩子的教育等方面
 
 【受访者】房子建起来了，孩子也长大了
+```
+
+### 减贫措施分析报告 ✨
+
+```
+📋 【减贫措施整体概述】
+该地区通过住房保障、教育支持、就业帮扶、基础设施建设等措施，
+显著改善了居民的生活条件。
+
+👥 【受访者生活变化】
+受访者家庭住房条件得到改善，子女教育水平提高，家庭经济状况改善。
+
+📊 【具体减贫措施】
+
+住房保障：
+  • 建房
+  • 改造
+
+教育支持：
+  • 子女教育资助
+  • 子女高等教育支持
+
+就业帮扶：
+  • 外出务工机会
+  • 技能培训
+
+基础设施建设：
+  • 道路改善
+  • 水电设施改善
+
+帮扶干部工作：
+  • 第一书记定期走访，了解需求并提供帮助
+
+⭐ 【工作亮点】
+  1. 住房条件的显著改善
+  2. 子女教育机会的增加
+  3. 基础设施的改善
 ```
 
 ## ⚙️ 高级功能
@@ -153,18 +207,20 @@ output/
 
 ```
 interview_transcription/
-├── batch_processor.py         # 批量处理主程序 ⭐
-├── config.py                  # 配置管理
-├── text_cleaner.py            # 文本清洗（合并段落）
-├── zhipu_cleaner.py           # 智谱AI优化
-├── Ifasr_llm/                 # 讯飞API封装
-│   ├── Ifasr.py              # 语音转写客户端
-│   └── orderResult.py        # 结果解析
-├── mp3data/                   # 输入音频目录
-└── output/                    # 输出目录
+├── batch_processor.py                # 批量处理主程序 ⭐
+├── config.py                         # 配置管理
+├── text_cleaner.py                   # 文本清洗（合并段落）
+├── zhipu_cleaner.py                  # 智谱AI优化
+├── poverty_reduction_analyzer.py     # 减贫措施分析器 ✨
+├── Ifasr_llm/                        # 讯飞API封装
+│   ├── Ifasr.py                     # 语音转写客户端
+│   └── orderResult.py               # 结果解析
+├── mp3data/                          # 输入音频目录
+└── output/                           # 输出目录
     ├── 1_api_responses/
     ├── 2_merged_texts/
-    └── 3_ai_optimized/
+    ├── 3_ai_optimized/
+    └── 4_poverty_reduction_summary/  # 减贫措施分析报告 ✨
 ```
 
 ## 🔧 故障排除
@@ -234,6 +290,38 @@ nohup python batch_processor.py -i mp3data --ai > process.log 2>&1 &
 
 ---
 
-**版本**: 1.0.0  
-**更新日期**: 2025-10-12
+## ✨ 减贫措施分析功能
+
+### 分析维度
+
+系统自动从访谈内容中提取以下9个维度的减贫措施：
+
+1. **住房保障** - 建房、改造、搬迁等
+2. **教育支持** - 子女教育、助学金等
+3. **医疗保障** - 医疗救助、健康帮扶等
+4. **就业帮扶** - 外出务工、技能培训等
+5. **产业扶贫** - 发展产业、种植养殖等
+6. **基础设施建设** - 道路、水电、网络等
+7. **社会保障** - 低保、养老、救助金等
+8. **帮扶干部工作** - 驻村干部、第一书记工作
+9. **其他措施** - 其他特色减贫措施
+
+### 输出格式
+
+每个访谈会生成两个文件：
+- **TXT报告** - 可读性强的中文报告
+- **JSON数据** - 结构化数据，便于后续统计分析
+
+### 应用场景
+
+- 📊 **快速汇总** - 批量提取几百个访谈的减贫措施
+- 📈 **数据分析** - 统计各维度措施的实施频率
+- 📝 **报告撰写** - 为研究报告提供结构化素材
+- 🔍 **政策评估** - 评估不同地区的减贫政策效果
+
+---
+
+**版本**: 2.0.0  
+**更新日期**: 2025-10-12  
+**新增功能**: 减贫措施智能分析 ✨
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 批量处理访谈音频文件
-完整流程：MP3 → 讯飞转写 → 合并段落 → 智谱AI优化
+完整流程：MP3 → 讯飞转写 → 合并段落 → 智谱AI优化 → 减贫措施分析
 """
 
 import os
@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config import Config
 from text_cleaner import TextCleaner
 from zhipu_cleaner import ZhipuTextCleaner
+from poverty_reduction_analyzer import PovertyReductionAnalyzer
 
 # 导入讯飞API模块
 from Ifasr_llm.Ifasr import XfyunAsrClient
@@ -31,7 +32,8 @@ class BatchProcessor:
     def __init__(self, 
                  input_dir: str,
                  output_base_dir: str = "output",
-                 enable_ai: bool = True):
+                 enable_ai: bool = True,
+                 enable_poverty_analysis: bool = True):
         """
         初始化批处理器
         
@@ -39,28 +41,40 @@ class BatchProcessor:
             input_dir: 输入音频文件目录
             output_base_dir: 输出基础目录
             enable_ai: 是否启用智谱AI优化
+            enable_poverty_analysis: 是否启用减贫措施分析
         """
         self.input_dir = Path(input_dir)
         self.output_base_dir = Path(output_base_dir)
         self.enable_ai = enable_ai
+        self.enable_poverty_analysis = enable_poverty_analysis
         
         # 创建输出目录结构
         self.api_dir = self.output_base_dir / "1_api_responses"
         self.merged_dir = self.output_base_dir / "2_merged_texts"
         self.ai_dir = self.output_base_dir / "3_ai_optimized"
+        self.poverty_dir = self.output_base_dir / "4_poverty_reduction_summary"
         
-        for dir_path in [self.api_dir, self.merged_dir, self.ai_dir]:
+        for dir_path in [self.api_dir, self.merged_dir, self.ai_dir, self.poverty_dir]:
             dir_path.mkdir(parents=True, exist_ok=True)
         
         # 初始化工具
         self.text_cleaner = TextCleaner()
+        
         if self.enable_ai:
             try:
                 self.ai_cleaner = ZhipuTextCleaner()
-                print("✅ 智谱AI已初始化")
+                print("✅ 智谱AI优化已初始化")
             except Exception as e:
                 print(f"⚠️  智谱AI初始化失败: {e}")
                 self.enable_ai = False
+        
+        if self.enable_poverty_analysis:
+            try:
+                self.poverty_analyzer = PovertyReductionAnalyzer()
+                print("✅ 减贫措施分析器已初始化")
+            except Exception as e:
+                print(f"⚠️  减贫措施分析器初始化失败: {e}")
+                self.enable_poverty_analysis = False
         
         # 统计信息
         self.stats = {
@@ -100,16 +114,23 @@ class BatchProcessor:
             api_file = self.api_dir / f"{basename}_api.json"
             merged_file = self.merged_dir / f"{basename}_merged.txt"
             ai_file = self.ai_dir / f"{basename}_ai.txt"
+            poverty_file = self.poverty_dir / f"{basename}_poverty_summary.txt"
             
             # 如果所有输出文件都存在，跳过
-            if api_file.exists() and merged_file.exists():
-                if not self.enable_ai or ai_file.exists():
-                    print(f"⏭️  文件已处理，跳过: {audio_path.name}")
-                    self.stats['skipped'] += 1
-                    return True
+            all_done = api_file.exists() and merged_file.exists()
+            if self.enable_ai:
+                all_done = all_done and ai_file.exists()
+            if self.enable_poverty_analysis:
+                all_done = all_done and poverty_file.exists()
+            
+            if all_done:
+                print(f"⏭️  文件已处理，跳过: {audio_path.name}")
+                self.stats['skipped'] += 1
+                return True
             
             # ========== 步骤1: 讯飞语音转写 ==========
-            print("\n[1/3] 🎙️  讯飞语音转写中...")
+            total_steps = 2 + (1 if self.enable_ai else 0) + (1 if self.enable_poverty_analysis else 0)
+            print(f"\n[1/{total_steps}] 🎙️  讯飞语音转写中...")
             
             asr_client = XfyunAsrClient(
                 appid=Config.IFLYTEK_APPID,
@@ -137,7 +158,8 @@ class BatchProcessor:
                 raise Exception("转写结果为空")
             
             # ========== 步骤2: 合并段落 ==========
-            print("\n[2/3] 📝 合并连续同一说话人段落...")
+            step_num = 2
+            print(f"\n[{step_num}/{total_steps}] 📝 合并连续同一说话人段落...")
             
             merged_text = self.text_cleaner.clean_transcript(
                 transcript_text,
@@ -155,8 +177,10 @@ class BatchProcessor:
             print(f"   ✅ 合并文本已保存: {merged_file.name}")
             
             # ========== 步骤3: 智谱AI优化（可选）==========
+            ai_text = None
             if self.enable_ai:
-                print("\n[3/3] 🤖 智谱AI智能优化中...")
+                step_num += 1
+                print(f"\n[{step_num}/{total_steps}] 🤖 智谱AI智能优化中...")
                 
                 # 解析为对话列表
                 dialogues = self.text_cleaner.parse_speaker_text(merged_text)
@@ -180,6 +204,24 @@ class BatchProcessor:
                     f.write("="*60 + "\n\n")
                     f.write(ai_text)
                 print(f"   ✅ AI优化文本已保存: {ai_file.name}")
+            
+            # ========== 步骤4: 减贫措施分析（可选）==========
+            if self.enable_poverty_analysis:
+                step_num += 1
+                print(f"\n[{step_num}/{total_steps}] 🔍 分析减贫措施中...")
+                
+                # 使用AI优化后的文本（如果有），否则使用合并后的文本
+                analysis_text = ai_text if ai_text else merged_text
+                
+                # 执行分析
+                analysis_result = self.poverty_analyzer.analyze_interview(analysis_text)
+                
+                # 保存分析结果
+                self.poverty_analyzer.save_analysis(
+                    analysis_result,
+                    str(poverty_file),
+                    audio_path.name
+                )
             
             print(f"\n✅ 文件处理完成: {audio_path.name}")
             self.stats['success'] += 1
@@ -207,6 +249,7 @@ class BatchProcessor:
         print(f"输出目录: {self.output_base_dir}")
         print(f"音频文件数: {self.stats['total']}")
         print(f"启用AI优化: {'是' if self.enable_ai else '否'}")
+        print(f"启用减贫分析: {'是' if self.enable_poverty_analysis else '否'}")
         print("="*70)
         
         # 逐个处理
@@ -237,6 +280,8 @@ class BatchProcessor:
         print(f"   合并文本: {self.merged_dir}")
         if self.enable_ai:
             print(f"   AI优化: {self.ai_dir}")
+        if self.enable_poverty_analysis:
+            print(f"   减贫措施分析: {self.poverty_dir}")
 
 
 def main():
@@ -281,17 +326,32 @@ def main():
         action='store_true',
         help='禁用智谱AI优化（仅转写+合并）'
     )
+    parser.add_argument(
+        '--poverty-analysis',
+        action='store_true',
+        default=True,
+        help='启用减贫措施分析（默认启用）'
+    )
+    parser.add_argument(
+        '--no-poverty-analysis',
+        action='store_true',
+        help='禁用减贫措施分析'
+    )
     
     args = parser.parse_args()
     
     # 确定是否启用AI
     enable_ai = args.ai or not args.no_ai
     
+    # 确定是否启用减贫分析
+    enable_poverty_analysis = not args.no_poverty_analysis
+    
     # 创建处理器并执行
     processor = BatchProcessor(
         input_dir=args.input,
         output_base_dir=args.output,
-        enable_ai=enable_ai
+        enable_ai=enable_ai,
+        enable_poverty_analysis=enable_poverty_analysis
     )
     
     try:
