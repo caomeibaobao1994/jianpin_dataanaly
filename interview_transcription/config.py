@@ -24,8 +24,13 @@ class Config:
     
     # ============ 讯飞API配置 ============
     # 请在.env文件中设置，或直接在这里填写
+    # 标准版API（旧版）
     IFLYTEK_APPID = os.getenv('IFLYTEK_APPID', 'c0d9df4d')
-    IFLYTEK_SECRET_KEY = os.getenv('IFLYTEK_SECRET_KEY', '4c4079c19d674ee01c14f3faadec89e4')
+    IFLYTEK_SECRET_KEY = os.getenv('IFLYTEK_SECRET_KEY', '206af4dddefea1c442f33f39c11ad96f')
+    
+    # 大模型API（新版，推荐）- 需要三个密钥
+    IFLYTEK_API_KEY = os.getenv('IFLYTEK_API_KEY', '206af4dddefea1c442f33f39c11ad96f')
+    IFLYTEK_API_SECRET = os.getenv('IFLYTEK_API_SECRET', 'ZDdkNDE2NTQxNDhhYzI1ZGMwOTA0ZGJh')
     
     # ============ WhisperX配置 ============
     # 模型大小: tiny/base/small/medium/large
@@ -52,6 +57,12 @@ class Config:
     LANGUAGE = 'zh_cn'
     # 是否加标点
     HAS_PARTICIPLE = True
+    
+    # ============ 智谱AI配置 ============
+    # 用于AI辅助文本清洗和优化
+    ZHIPU_API_KEY = os.getenv('ZHIPU_API_KEY', 'dfabbf5e418647a1b6618619ec26ce64.qfhvaSesDwlL1EYm')
+    ZHIPU_MODEL = os.getenv('ZHIPU_MODEL', 'glm-4-flash')  # 可选: glm-4, glm-4-flash
+    ZHIPU_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
     
     # ============ 清洗参数 ============
     # 语气词列表（深度清洗）

@@ -18,7 +18,7 @@ class TextCleaner:
     
     def remove_filler_words(self, text: str) -> str:
         """
-        去除语气词和填充词
+        去除语气词和填充词（保留标点符号）
         
         Args:
             text: 原始文本
@@ -30,16 +30,23 @@ class TextCleaner:
         sorted_fillers = sorted(self.filler_words, key=len, reverse=True)
         
         for filler in sorted_fillers:
-            # 使用正则，确保独立词（不在词中间）
-            # 匹配：句首、逗号后、句号后等位置
-            patterns = [
-                f'^{re.escape(filler)}[，。,.]?',  # 句首
-                f'[，。,.]{re.escape(filler)}[，。,.]?',  # 标点后
-                f'{re.escape(filler)}[，。,.]',  # 后接标点
-            ]
+            escaped_filler = re.escape(filler)
             
-            for pattern in patterns:
-                text = re.sub(pattern, '', text)
+            # 1. 句首的语气词（后面可能有标点）- 保留标点
+            # "啊，你好" → "，你好"  "嗯。" → "。"
+            text = re.sub(f'^{escaped_filler}([，。,.！？!?]?)', r'\1', text)
+            
+            # 2. 标点后的语气词后面又跟标点 - 合并标点（避免重复标点）
+            # "你好，啊，我是" → "你好，我是"
+            text = re.sub(f'([，。,.！？!?]){escaped_filler}[，。,.！？!?]', r'\1', text)
+            
+            # 3. 语气词后接标点（保留标点）
+            # "你好啊，我是" → "你好，我是"
+            text = re.sub(f'{escaped_filler}([，。,.！？!?])', r'\1', text)
+            
+            # 4. 孤立的语气词（前后都不是标点和空格）
+            # "你好啊我是" → "你好我是"
+            text = re.sub(f'(?<=[^，。,.！？!?\s]){escaped_filler}(?=[^，。,.！？!?\s])', '', text)
         
         return text
     
@@ -254,6 +261,44 @@ class TextCleaner:
         
         return merged
     
+    def parse_speaker_text(self, text: str) -> List[Dict]:
+        """
+        解析带说话人标记的文本，转换为对话列表
+        
+        支持的格式：
+        - 【访谈者】文本内容
+        - 访谈者：文本内容
+        
+        Args:
+            text: 带说话人标记的文本字符串
+            
+        Returns:
+            对话列表 [{'speaker': '访谈者', 'text': '...'}]
+        """
+        dialogues = []
+        
+        # 匹配【说话人】或说话人：格式
+        # 支持：【访谈者】文本 或 访谈者：文本
+        pattern = r'(?:【([^】]+)】|([^：\n]+)：)([^\n【]+)'
+        
+        matches = re.finditer(pattern, text, re.MULTILINE)
+        
+        for match in matches:
+            speaker = match.group(1) or match.group(2)  # 【】内或：前的内容
+            content = match.group(3)  # 文本内容
+            
+            if speaker and content:
+                speaker = speaker.strip()
+                content = content.strip()
+                
+                if content:  # 过滤空文本
+                    dialogues.append({
+                        'speaker': speaker,
+                        'text': content
+                    })
+        
+        return dialogues
+    
     def format_to_text(self, dialogues: List[Dict], 
                        show_speaker: bool = True,
                        speaker_labels: Dict[str, str] = None) -> str:
@@ -279,9 +324,63 @@ class TextCleaner:
                 speaker = speaker_labels[speaker]
             
             if show_speaker:
-                lines.append(f"{speaker}：{text}")
+                lines.append(f"【{speaker}】{text}")
             else:
                 lines.append(text)
         
         return '\n\n'.join(lines)
+    
+    def clean_transcript(self, text: str, merge_speakers: bool = True, 
+                        deep_clean: bool = True, use_ai: bool = False,
+                        ai_batch_size: int = 5) -> str:
+        """
+        清洗转写文本（统一入口）
+        
+        处理流程：
+        1. 解析带说话人标记的文本
+        2. 合并连续同一说话人的段落（可选）
+        3. 深度文本清洗（可选）
+        4. AI智能优化（可选，需要智谱AI API）
+        5. 格式化输出
+        
+        Args:
+            text: 原始转写文本（带说话人标记）
+            merge_speakers: 是否合并连续同一说话人
+            deep_clean: 是否进行规则深度清洗
+            use_ai: 是否使用智谱AI进行智能优化
+            ai_batch_size: AI处理时每批次的段落数
+            
+        Returns:
+            清洗后的文本
+        """
+        # 1. 解析文本
+        dialogues = self.parse_speaker_text(text)
+        
+        if not dialogues:
+            return text  # 解析失败，返回原文
+        
+        # 2. 合并连续同一说话人（如果需要）
+        if merge_speakers:
+            dialogues = self.merge_same_speaker(dialogues)
+        
+        # 3. 规则深度清洗（如果需要）
+        if deep_clean:
+            dialogues = self.clean_dialogues(dialogues)
+        
+        # 4. AI智能优化（如果需要）
+        if use_ai:
+            try:
+                from zhipu_cleaner import ZhipuTextCleaner
+                print("\n🤖 启用智谱AI智能优化...")
+                ai_cleaner = ZhipuTextCleaner()
+                dialogues = ai_cleaner.clean_dialogue_batch(dialogues, batch_size=ai_batch_size)
+            except ImportError as e:
+                print(f"⚠️  无法使用智谱AI: {str(e)}")
+                print("   请安装: pip install zhipuai")
+            except Exception as e:
+                print(f"⚠️  AI清洗出错: {str(e)}")
+                print("   将继续使用规则清洗结果")
+        
+        # 5. 格式化输出
+        return self.format_to_text(dialogues, show_speaker=True)
 
