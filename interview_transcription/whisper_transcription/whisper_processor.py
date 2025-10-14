@@ -10,6 +10,7 @@ from datetime import datetime
 import whisper
 from typing import Optional, List, Dict
 import config
+import subprocess # 新增导入
 
 
 class WhisperProcessor:
@@ -107,6 +108,40 @@ class WhisperProcessor:
         }
         
         return result
+    
+    def extract_audio(self, video_path: str, output_audio_path: str) -> None:
+        """
+        从视频文件中提取音频。
+        
+        Args:
+            video_path: 输入视频文件路径。
+            output_audio_path: 输出音频文件路径（例如, output.mp3）。
+        """
+        print(f"\n{'='*60}")
+        print(f"开始从视频中提取音频: {Path(video_path).name}")
+        print(f"保存到: {Path(output_audio_path).name}")
+        print(f"{'='*60}")
+        
+        command = [
+            "ffmpeg",
+            "-i", video_path,
+            "-vn", # 禁用视频录制
+            "-acodec", "libmp3lame", # 指定音频编码器 (MP3)
+            "-q:a", "2", # 音频质量 (0-9, 2是高质量)
+            output_audio_path
+        ]
+        
+        try:
+            subprocess.run(command, check=True, capture_output=True)
+            print(f"音频提取成功: {output_audio_path}")
+        except subprocess.CalledProcessError as e:
+            print(f"错误: 音频提取失败 - {Path(video_path).name}")
+            print(f"FFmpeg 输出: {e.stderr.decode()}")
+            raise
+        except FileNotFoundError:
+            print("错误: 未找到 FFmpeg。请确保 FFmpeg 已安装且在系统 PATH 中。")
+            raise
+
     
     def _save_results(self, 
                      result: Dict, 

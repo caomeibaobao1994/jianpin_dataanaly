@@ -14,7 +14,7 @@ PYTHON_ENV = "/opt/anaconda3/envs/jianpin/bin/python"
 # small: 平衡选择 (~2GB)
 # medium: 精度较高 (~5GB)
 # large: 最高精度 (~10GB)
-WHISPER_MODEL = "small"  # 推荐使用 medium 或 small
+WHISPER_MODEL = "medium"  # 推荐使用 medium 或 small
 
 # 语言设置
 LANGUAGE = "zh"  # 中文，可设置为 None 自动检测

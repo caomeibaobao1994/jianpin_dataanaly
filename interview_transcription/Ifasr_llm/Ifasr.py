@@ -117,7 +117,7 @@ class XfyunAsrClient:
         for k, v in sorted_params:
             if v is not None and str(v).strip() != "":
                 encoded_key = urllib.parse.quote(k, safe='')  # 参数名编码
-                encoded_value = urllib.parse.quote(str(v), safe='')  # 参数值编码
+                encoded_value = urllib.parse.quote_plus(str(v))  # 参数值编码，使用quote_plus将空格编码为'+'
                 base_parts.append(f"{encoded_key}={encoded_value}")
         
         self.last_base_string = "&".join(base_parts)

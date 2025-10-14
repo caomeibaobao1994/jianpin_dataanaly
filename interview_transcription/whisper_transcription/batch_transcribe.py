@@ -32,7 +32,8 @@ def get_audio_files(input_dir: str) -> list:
 
 def batch_transcribe(input_dir: str = None, 
                      output_dir: str = None,
-                     model_name: str = None):
+                     model_name: str = None,
+                     extract_audio_only: bool = False):
     """
     批量转录音视频文件
     
@@ -85,19 +86,33 @@ def batch_transcribe(input_dir: str = None,
         print(f"\n处理进度: [{i}/{len(audio_files)}]")
         
         try:
-            result = processor.transcribe_file(
-                audio_path=audio_path,
-                output_dir=output_dir
-            )
-            
-            success_count += 1
-            total_time += result['metadata']['transcribe_time']
-            results.append({
-                'file': Path(audio_path).name,
-                'status': 'success',
-                'duration': result['metadata']['duration'],
-                'transcribe_time': result['metadata']['transcribe_time']
-            })
+            if extract_audio_only:
+                # 仅导出音频
+                file_name = Path(audio_path).stem
+                output_audio_path = os.path.join(output_dir, f"{file_name}.mp3") # 默认导出为 mp3
+                processor.extract_audio(audio_path, output_audio_path)
+                
+                success_count += 1
+                results.append({
+                    'file': Path(audio_path).name,
+                    'status': 'audio_extracted',
+                    'output': output_audio_path
+                })
+            else:
+                # 执行转录
+                result = processor.transcribe_file(
+                    audio_path=audio_path,
+                    output_dir=output_dir
+                )
+                
+                success_count += 1
+                total_time += result['metadata']['transcribe_time']
+                results.append({
+                    'file': Path(audio_path).name,
+                    'status': 'success',
+                    'duration': result['metadata']['duration'],
+                    'transcribe_time': result['metadata']['transcribe_time']
+                })
             
         except Exception as e:
             fail_count += 1
@@ -114,13 +129,18 @@ def batch_transcribe(input_dir: str = None,
     elapsed_time = (end_time - start_time).total_seconds()
     
     print(f"\n{'='*60}")
-    print("批量转录完成")
+    print("批量处理完成") # 修改总结信息
     print(f"{'='*60}")
+    if extract_audio_only:
+        print("模式: 仅提取音频")
+    else:
+        print("模式: 音视频转文本")
     print(f"总文件数: {len(audio_files)}")
     print(f"成功: {success_count}")
     print(f"失败: {fail_count}")
     print(f"总耗时: {elapsed_time:.2f} 秒")
-    print(f"平均每个文件: {elapsed_time/len(audio_files):.2f} 秒")
+    if len(audio_files) > 0: # 避免除以零
+        print(f"平均每个文件: {elapsed_time/len(audio_files):.2f} 秒")
     print(f"{'='*60}\n")
     
     # 保存处理报告
@@ -185,6 +205,12 @@ def main():
         choices=['tiny', 'base', 'small', 'medium', 'large', 'large-v2', 'large-v3'],
         help=f'Whisper 模型 (默认: {config.WHISPER_MODEL})'
     )
+
+    parser.add_argument(
+        '-ea', '--extract-audio-only',
+        action='store_true', # 存储 True 当参数存在时
+        help='仅从视频中提取音频，不进行转录'
+    )
     
     args = parser.parse_args()
     
@@ -192,7 +218,8 @@ def main():
     batch_transcribe(
         input_dir=args.input,
         output_dir=args.output,
-        model_name=args.model
+        model_name=args.model,
+        extract_audio_only=args.extract_audio_only
     )
 
 
