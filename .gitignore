@@ -30,3 +30,32 @@ merged*
 # 其他
 *.log
 
+# 敏感信息 - API密钥和配置文件
+.env
+.env.local
+.env.*.local
+*.key
+*.secret
+
+# 输入数据目录（包含访谈文本等）
+interview_transcription/input_text/
+**/input_text/
+**/input/
+
+# 输出数据目录（包含处理结果等）
+interview_transcription/output/
+**/output/
+output/
+
+# 音频文件
+*.mp3
+*.wav
+*.m4a
+*.flac
+*.MP3
+
+# 临时文件和缓存
+*.tmp
+*.cache
+.cache/
+

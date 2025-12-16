@@ -1,394 +1,340 @@
-# 访谈音频批量处理系统
+# 县域标签与减贫措施分析系统
 
-> 完整的访谈音频转写和分析流程：MP3 → 讯飞转写 → 合并段落 → 智谱AI优化 → 减贫措施分析
+基于智谱AI的县域标签生成和减贫措施分析工具，用于批量处理县域访谈数据，自动生成标准化标签和分析报告。
 
-[![Python Version](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+## 核心功能
 
-## 📋 处理流程
+### 1. 县域标签生成
+- **单个县处理** (`county_labeler.py`): 为单个县生成标签和减贫措施分析
+- **批量处理** (`process_all_counties.py`): 自动发现并批量处理所有县
+- **标准化标签体系**: 固定格式的县域标签和措施标签，便于后续分析
 
-```
-mp3data/
-  ├── interview1.mp3
-  ├── interview2.mp3
-  └── interview3.mp3
-        ↓
-   【步骤1：讯飞API语音转写】
-   - 自动识别说话人（访谈者/受访者）
-   - 添加标点符号
-        ↓
-   【步骤2：合并连续段落】
-   - 合并连续同一说话人的多个段落
-   - 提高可读性
-        ↓
-   【步骤3：智谱AI智能优化】
-   - 去除语气词（嗯、啊等）
-   - 口语转书面语
-   - 优化句子结构
-        ↓
-   【步骤4：减贫措施智能分析】✨
-   - 提取9个维度的减贫措施
-   - 总结受访者生活变化
-   - 识别工作亮点
-        ↓
-output/
-  ├── 1_api_responses/              # API原始响应JSON
-  ├── 2_merged_texts/               # 合并段落后的文本
-  ├── 3_ai_optimized/               # AI智能优化文本
-  └── 4_poverty_reduction_summary/  # 减贫措施分析报告 ✨
-```
+### 2. 辅助工具
+- **标签分析** (`analyze_tags.py`): 分析所有县的标签分布和模式
+- **标签验证** (`validate_tags.py`): 验证标签是否符合标准化体系
+- **文本合并** (`county_text_merger.py`): 合并县域访谈文本
+- **基础信息获取** (`fetch_county_briefs.py`): 从高德地图API获取县域基础信息
 
-## 🚀 快速开始
+## 快速开始
 
 ### 1. 安装依赖
 
 ```bash
 cd interview_transcription
-pip install zhipuai requests
+pip install python-dotenv zhipuai python-docx requests
 ```
 
 ### 2. 配置API密钥
 
-编辑 `config.py`，填入你的API密钥：
-
-```python
-# 讯飞API配置
-IFLYTEK_APPID = "你的APPID"
-IFLYTEK_API_KEY = "你的API_KEY"
-IFLYTEK_API_SECRET = "你的API_SECRET"
-
-# 智谱AI配置
-ZHIPU_API_KEY = "你的智谱API_KEY"
-```
-
-**API密钥获取地址**：
-- 讯飞API：https://www.xfyun.cn/
-- 智谱AI：https://open.bigmodel.cn/
-
-### 3. 批量处理音频
+**方式1：命令行环境变量（推荐）**
 
 ```bash
-# 完整处理（转写+合并+AI优化+减贫分析）- 推荐！
-python batch_processor.py -i mp3data --ai
+# 导出环境变量（当前终端会话有效）
+export ZHIPU_API_KEY=your_api_key_here
+export ZHIPU_MODEL=glm-4-flash
 
-# 仅转写和合并，不使用AI优化
-python batch_processor.py -i mp3data --no-ai
-
-# 不进行减贫措施分析
-python batch_processor.py -i mp3data --ai --no-poverty-analysis
-
-# 指定输出目录
-python batch_processor.py -i mp3data -o my_output --ai
+# 或直接在命令中设置
+ZHIPU_API_KEY=your_api_key_here python3 county_labeler.py ...
 ```
 
-## 📁 项目结构
+**方式2：使用.env文件（可选）**
+
+在 `interview_transcription` 目录下创建 `.env` 文件：
+
+```bash
+ZHIPU_API_KEY=your_api_key_here
+ZHIPU_MODEL=glm-4-flash
+ZHIPU_BASE_URL=https://open.bigmodel.cn/api/paas/v4
+```
+
+### 3. 运行示例
+
+**处理单个县**：
+
+```bash
+export ZHIPU_API_KEY=your_api_key_here
+
+python3 county_labeler.py \
+    --county-dir "input_text/河北省张家口市蔚县 （20240722-20240723）" \
+    --text-dir "input_text/河北省张家口市蔚县 （20240722-20240723）/河北省张家口市蔚县 （20240722-20240723）文本"
+```
+
+**批量处理所有县**：
+
+```bash
+export ZHIPU_API_KEY=your_api_key_here
+
+# 处理所有县
+python3 process_all_counties.py
+
+# 只处理前10个县（测试）
+python3 process_all_counties.py --limit 10
+
+# 强制重新处理所有县
+python3 process_all_counties.py --force
+```
+
+## 项目结构
 
 ```
 interview_transcription/
-├── batch_processor.py              # 批量处理主程序 ⭐
-├── config.py                       # 配置管理
-├── text_cleaner.py                 # 文本清洗（合并段落）
-├── zhipu_cleaner.py                # 智谱AI文本优化
-├── poverty_reduction_analyzer.py   # 减贫措施分析器 ✨
-├── requirements.txt                # Python依赖包
+├── county_labeler.py          # 核心：单个县标签生成
+├── process_all_counties.py    # 核心：批量处理所有县
+├── fetch_county_briefs.py    # 获取县域基础信息（高德API）
+├── analyze_tags.py            # 标签分析工具
+├── validate_tags.py           # 标签验证工具
+├── county_text_merger.py      # 文本合并工具
+├── config.py                  # 配置文件
+├── requirements.txt           # 依赖包列表
 │
-├── Ifasr_llm/                      # 讯飞API封装
-│   ├── Ifasr.py                    # 语音转写客户端
-│   └── orderResult.py              # 结果解析
+├── input_text/                # 输入数据（已忽略，不提交Git）
+│   └── {县目录}/
+│       ├── 基础信息.txt
+│       └── {文本目录}/
+│           └── *.docx
 │
-├── mp3data/                        # 输入音频目录
-│   └── *.mp3
-│
-└── output/                         # 输出目录
-    ├── 1_api_responses/            # API原始响应JSON
-    ├── 2_merged_texts/             # 合并段落文本
-    ├── 3_ai_optimized/             # AI优化文本
-    └── 4_poverty_reduction_summary/ # 减贫措施分析报告
+└── output/                    # 输出数据（已忽略，不提交Git）
+    ├── 2_merged_texts/        # 合并后的文本
+    └── 4_poverty_reduction_summary/  # 标签JSON文件
 ```
 
-### 核心模块说明
+## 核心脚本说明
 
-| 模块 | 功能 | 代码行数 |
-|------|------|---------|
-| `batch_processor.py` | 批量处理主程序，协调整个流程 | ~350行 |
-| `config.py` | 配置管理（API密钥、参数设置） | ~70行 |
-| `text_cleaner.py` | 文本清洗和段落合并 | ~390行 |
-| `zhipu_cleaner.py` | 智谱AI文本优化 | ~240行 |
-| `poverty_reduction_analyzer.py` | 减贫措施智能分析 | ~280行 |
+### county_labeler.py - 单个县标签生成
 
-## 📊 输出文件说明
+**功能**：
+- 读取县域基础信息和访谈文本
+- 使用智谱AI生成标准化标签
+- 输出JSON格式的分析结果
 
-处理完成后，每个音频文件会生成5个输出文件：
-
-```
-output/
-├── 1_api_responses/
-│   └── interview1_api.json         # 讯飞API原始JSON响应
-│
-├── 2_merged_texts/
-│   └── interview1_merged.txt       # 合并段落后的文本
-│
-├── 3_ai_optimized/
-│   └── interview1_ai.txt           # AI智能优化文本
-│
-└── 4_poverty_reduction_summary/
-    ├── interview1_poverty_summary.txt   # 减贫措施分析报告
-    └── interview1_poverty_summary.json  # 结构化数据
-```
-
-### 输出文件用途
-
-| 文件夹 | 内容 | 用途 |
-|--------|------|------|
-| `1_api_responses/` | 讯飞API原始JSON响应 | 备份原始数据，可重新解析 |
-| `2_merged_texts/` | 合并段落后的文本 | 保留口语化表达，真实还原访谈 |
-| `3_ai_optimized/` | AI智能优化文本 | 规范书面表达，适合存档和分析 |
-| `4_poverty_reduction_summary/` | 减贫措施分析报告 | 结构化提取9大维度减贫措施 |
-
-## 💡 输出示例对比
-
-### 原始转写（22个段落）
-```
-【访谈者】比如说造房子呀，
-【访谈者】比如说你家小孩读书啊
-【受访者】房子造起来了，
-【受访者】小孩也大了，
-```
-
-### 合并段落（16个段落）
-```
-【访谈者】比如说造房子呀，比如说你家小孩读书啊
-
-【受访者】房子造起来了，小孩也大了，
-```
-
-### AI优化（16个段落）
-```
-【访谈者】比如说盖房子，或者孩子的教育等方面
-
-【受访者】房子建起来了，孩子也长大了
-```
-
-### 减贫措施分析报告 ✨
-
-```
-📋 【减贫措施整体概述】
-该地区通过住房保障、教育支持、就业帮扶、基础设施建设等措施，
-显著改善了居民的生活条件。
-
-👥 【受访者生活变化】
-受访者家庭住房条件得到改善，子女教育水平提高，家庭经济状况改善。
-
-📊 【具体减贫措施】
-
-住房保障：
-  • 建房
-  • 改造
-
-教育支持：
-  • 子女教育资助
-  • 子女高等教育支持
-
-就业帮扶：
-  • 外出务工机会
-  • 技能培训
-
-基础设施建设：
-  • 道路改善
-  • 水电设施改善
-
-帮扶干部工作：
-  • 第一书记定期走访，了解需求并提供帮助
-
-⭐ 【工作亮点】
-  1. 住房条件的显著改善
-  2. 子女教育机会的增加
-  3. 基础设施的改善
-```
-
-## ✨ 减贫措施分析功能
-
-### 分析维度
-
-系统自动从访谈内容中提取以下9个维度的减贫措施：
-
-1. **住房保障** - 建房、改造、搬迁等
-2. **教育支持** - 子女教育、助学金等
-3. **医疗保障** - 医疗救助、健康帮扶等
-4. **就业帮扶** - 外出务工、技能培训等
-5. **产业扶贫** - 发展产业、种植养殖等
-6. **基础设施建设** - 道路、水电、网络等
-7. **社会保障** - 低保、养老、救助金等
-8. **帮扶干部工作** - 驻村干部、第一书记工作
-9. **其他措施** - 其他特色减贫措施
-
-### 应用场景
-
-- 📊 **快速汇总** - 批量提取几百个访谈的减贫措施
-- 📈 **数据分析** - 统计各维度措施的实施频率
-- 📝 **报告撰写** - 为研究报告提供结构化素材
-- 🔍 **政策评估** - 评估不同地区的减贫政策效果
-
-## ⚙️ 高级功能
-
-### 断点续传
-
-程序会自动检测已处理的文件，如果所有输出文件都存在，会跳过该文件：
-
-```
-⏭️  文件已处理，跳过: interview1.mp3
-```
-
-如需重新处理，删除对应的输出文件即可。
-
-### 批量处理大量文件
-
-处理几百个文件时，程序会：
-- ✅ 自动限制请求频率，避免API限流
-- ✅ 显示实时进度
-- ✅ 出错后继续处理剩余文件
-- ✅ 最后打印完整统计报告
-
-### 后台运行（推荐）
-
-对于大批量文件，可以使用nohup后台运行：
-
+**用法**：
 ```bash
-nohup python batch_processor.py -i mp3data --ai > process.log 2>&1 &
-
-# 查看进度
-tail -f process.log
+python3 county_labeler.py \
+    --county-dir "input_text/县目录" \
+    --text-dir "input_text/县目录/文本目录" \
+    --char-limit 50000
 ```
 
-### 成本估算
+**参数**：
+- `--county-dir`: 县目录路径（需包含基础信息.txt）
+- `--text-dir`: 访谈文本目录（docx/txt文件）
+- `--combined-file`: 如果已有合并好的文本文件，可直接指定
+- `--char-limit`: 文本字符数限制（默认50000）
+- `--output`: 自定义输出路径
 
-| 服务 | 价格 | 示例成本（100个10分钟访谈） |
-|------|------|---------------------------|
-| 讯飞转写 | ¥0.3-0.5/分钟 | ¥300-500 |
-| 智谱AI | ¥0.001/千字 | ¥2-5 |
-| **总计** | - | **¥302-505** |
+**输出**：
+- `output/4_poverty_reduction_summary/{县名}_labels.json`
 
-## 🔧 故障排除
+### process_all_counties.py - 批量处理
 
-### 问题1: ModuleNotFoundError
+**功能**：
+- 自动扫描所有县目录
+- 批量处理所有符合条件的县
+- 生成处理日志和统计报告
 
+**用法**：
 ```bash
-# 确保安装了依赖
-pip install zhipuai requests
+python3 process_all_counties.py [选项]
 ```
 
-### 问题2: API调用失败
+**选项**：
+- `--limit N`: 限制处理的县数量（测试用）
+- `--force`: 强制重新处理所有县
+- `--dry-run`: 只检查，不实际处理
+- `--char-limit N`: 文本字符数限制（默认50000）
+- `--log PATH`: 自定义日志文件路径
 
-检查 `config.py` 中的API密钥是否正确：
-- 讯飞密钥获取: https://www.xfyun.cn/
-- 智谱密钥获取: https://open.bigmodel.cn/
+**输出**：
+- 每个县的标签JSON文件
+- `output/batch_processing_log.txt` - 处理日志
 
-### 问题3: 转写结果为空
+### fetch_county_briefs.py - 获取县域基础信息
 
-可能原因：
-- 音频文件损坏
-- 音频格式不支持（支持：mp3, wav, m4a, flac）
-- 音频时长过长（建议<60分钟）
+**功能**：
+- 使用高德地图API获取县域基础信息
+- 生成 `基础信息.txt` 文件
 
-### 问题4: AI优化失败
-
-检查智谱AI API密钥和余额：
-- 登录 https://open.bigmodel.cn/ 查看账户余额
-- 确认API密钥有效期
-
-### 问题5: Python版本问题
-
-确保使用 Python 3.6 或更高版本：
-
+**用法**：
 ```bash
-# 使用conda环境（推荐）
-conda activate jianpin
-python --version  # 应显示 Python 3.x
+# 需要设置高德API密钥
+export AMAP_KEY=your_amap_key_here
 
-# 或直接指定Python路径
-/opt/anaconda3/envs/jianpin/bin/python batch_processor.py -i mp3data --ai
+# 处理所有县
+python3 fetch_county_briefs.py
+
+# 只处理前5个县
+python3 fetch_county_briefs.py --limit 5
+
+# 覆盖已有文件
+python3 fetch_county_briefs.py --overwrite
 ```
 
-## 💡 使用建议
+### analyze_tags.py - 标签分析
 
-### 1. 先测试单个文件
+**功能**：
+- 分析所有县的标签分布
+- 生成标签统计报告
+- 生成标签映射表
 
+**用法**：
 ```bash
-# 将一个测试音频放入test_dir文件夹
-python batch_processor.py -i test_dir --ai
+python3 analyze_tags.py
 ```
 
-### 2. 分批处理大量文件
+**输出**：
+- `output/tag_analysis_report.txt` - 分析报告
+- `output/tag_mapping.json` - 标签映射表
 
-如果有几百个文件，建议分批处理：
+### validate_tags.py - 标签验证
 
+**功能**：
+- 验证所有标签是否符合标准化体系
+- 识别非标准标签
+- 生成验证报告
+
+**用法**：
 ```bash
-# 处理第1-100个文件
-python batch_processor.py -i batch1 --ai
-
-# 处理第101-200个文件
-python batch_processor.py -i batch2 --ai
+python3 validate_tags.py
 ```
 
-### 3. 定期备份输出文件
+**输出**：
+- `output/tag_validation_report.json` - 验证报告
 
+## 标准化标签体系
+
+### 县域标签（3-6个）
+
+**必选（1个）**：地形特征
+- 山区县、高原县、平原县、丘陵县、盆地县、河谷县
+
+**可选（0-2个）**：区位特征
+- 革命老区县、民族聚居县、边境县、易地搬迁重点县、生态脆弱区、资源型县
+
+**可选（0-2个）**：产业特征
+- 农业大县、特色产业县、旅游县、电商县、光伏县、养殖县、种植县
+
+**可选（0-1个）**：政策特征
+- 东西部协作重点县、定点帮扶县、示范县
+
+### 措施标签（4-10个）
+
+共12个类别，62个标准标签：
+- 产业扶贫（6个）
+- 基础设施（6个）
+- 教育扶贫（6个）
+- 医疗扶贫（5个）
+- 就业扶贫（5个）
+- 易地搬迁（3个）
+- 社会保障（5个）
+- 金融支持（4个）
+- 组织保障（5个）
+- 机制创新（5个）
+- 协作帮扶（4个）
+- 其他（4个）
+
+详细列表见代码中的 `PROMPT_TEMPLATE`。
+
+## 输出格式
+
+每个县的标签文件格式（JSON）：
+
+```json
+{
+  "county_name": "县名",
+  "county_tags": ["山区县", "革命老区县", "农业大县"],
+  "effective_measures": [
+    {
+      "tag": "产业扶贫",
+      "evidence": "通过发展特色产业带动增收"
+    },
+    {
+      "tag": "基础设施建设",
+      "evidence": "完成道路、饮水等基础设施改造"
+    }
+  ],
+  "summary": "2-3句总结"
+}
+```
+
+## 环境变量说明
+
+### 必需
+- `ZHIPU_API_KEY` - 智谱AI API密钥
+
+### 可选
+- `ZHIPU_MODEL` - 模型名称（默认：glm-4-flash）
+- `ZHIPU_BASE_URL` - API基础URL（默认：https://open.bigmodel.cn/api/paas/v4）
+- `AMAP_KEY` - 高德地图API密钥（用于fetch_county_briefs.py）
+
+## 常见问题
+
+### Q1: 提示 "缺少 ZHIPU_API_KEY"
+
+**解决**：设置环境变量
 ```bash
-# 备份output目录
-cp -r output output_backup_$(date +%Y%m%d)
+export ZHIPU_API_KEY=your_api_key_here
 ```
 
-## 📊 技术栈
+### Q2: 提示 "未找到基础信息.txt"
 
-| 技术 | 用途 |
-|------|------|
-| Python 3.6+ | 开发语言 |
-| 讯飞语音转写API | 语音识别和说话人分离 |
-| 智谱AI API | 文本优化和智能分析 |
-| requests | HTTP请求 |
+**解决**：确保县目录下有 `基础信息.txt` 文件，或使用 `fetch_county_briefs.py` 生成
 
-## 📝 依赖清单
+### Q3: 提示 "未找到文本目录"
+
+**解决**：检查文本目录命名是否符合以下模式：
+- `{县名}-文本`
+- `{县名}文本`
+- `{县名} 文本`（有空格）
+
+### Q4: 处理速度慢
+
+**解决**：
+- 降低 `--char-limit` 值（如30000）
+- 批量处理脚本已内置延迟，避免API调用过快
+
+## 注意事项
+
+1. **API密钥安全**：
+   - ✅ 使用命令行环境变量方式，密钥不会保存到文件
+   - ✅ `.env` 文件已被添加到 `.gitignore`
+   - ✅ 不要将API密钥硬编码到代码中
+
+2. **数据文件**：
+   - ✅ `input_text/` 和 `output/` 目录已被忽略
+   - ✅ 这些目录中的文件不会被提交到Git
+
+3. **网络要求**：
+   - 需要网络连接以调用智谱AI API
+   - 如果使用代理，确保正确配置
+
+4. **处理时间**：
+   - 单个县处理时间：约30秒-2分钟
+   - 批量处理127个县：约1-2小时（取决于网络和API响应速度）
+
+## 依赖包
 
 ```
-requests>=2.31.0        # HTTP请求
-zhipuai>=2.0.0          # 智谱AI SDK
 python-dotenv>=1.0.0    # 环境变量管理（可选）
+zhipuai>=2.0.0          # 智谱AI SDK
+python-docx>=1.0.0      # Word文档处理
+requests>=2.31.0        # HTTP请求
 ```
 
-## 📞 技术支持
+安装：
+```bash
+pip install -r requirements.txt
+```
 
-遇到问题请检查：
-1. ✅ API密钥是否正确
-2. ✅ 网络连接是否正常
-3. ✅ Python版本是否>=3.6
-4. ✅ 依赖包是否完整安装
+## 版本历史
 
-## 🎯 版本历史
-
-### v2.0.0 (2025-10-12) - 当前版本
-
-**新增功能**：
-- ✨ 减贫措施智能分析（9个维度）
-- ✨ 结构化报告生成（TXT + JSON）
-- ✨ 批量处理支持
-- ✨ 断点续传功能
-
-**优化改进**：
-- 🚀 删除 WhisperX 后端，专注讯飞API
-- 🚀 代码量减少47%（~1500行 → ~800行）
-- 🚀 依赖包减少70%（~10个 → 3个）
-- 🚀 配置文件简化53%
-
-### v1.0.0 (初始版本)
-
-**基础功能**：
-- 讯飞API语音转写
-- 文本合并优化
-- 智谱AI文本清洗
+### v2.0.0 (当前版本)
+- ✨ 标准化标签体系
+- ✨ 批量处理功能
+- ✨ 标签分析和验证工具
+- ✨ 命令行环境变量支持
 
 ---
 
 **版本**: 2.0.0  
-**更新日期**: 2025-10-12  
-**作者**: 中国人民大学应用经济学院  
-**许可**: MIT License
-
+**更新日期**: 2025-01  
+**作者**: 中国人民大学应用经济学院

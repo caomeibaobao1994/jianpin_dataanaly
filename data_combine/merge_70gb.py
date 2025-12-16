@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 专门针对70个1GB文件的合并脚本
+支持格式：Excel (.xlsx, .xls), CSV (.csv), Stata (.dta)
 直接运行即可，已优化性能参数
 """
 
-from large_file_merge import merge_large_files, quick_merge_csv_only
+from large_file_merge import merge_large_files, quick_merge_stata_only, quick_merge_csv_only
 import sys
 
 def main():
@@ -13,6 +14,7 @@ def main():
     print("="*70)
     print()
     print("📊 预期场景：70个文件，每个约1GB")
+    print("📁 支持格式：Excel (.xlsx, .xls), CSV (.csv), Stata (.dta)")
     print("⏱️  预计时间：2-3小时")
     print("💾 内存需求：建议8GB以上")
     print()
@@ -40,14 +42,21 @@ def main():
     print()
     
     try:
-        # 方式1：标准方式（支持Excel和CSV混合）
+        # 方式1：标准方式（支持Excel、CSV、Stata混合）
         merge_large_files(
             input_dir=INPUT_DIR,
             output_file=OUTPUT_FILE,
             chunksize=CHUNKSIZE
         )
         
-        # 方式2：如果全是CSV文件，取消下面的注释使用极速版本
+        # 方式2：如果全是Stata文件，取消下面的注释使用快速版本
+        # quick_merge_stata_only(
+        #     input_dir=INPUT_DIR,
+        #     output_file=OUTPUT_FILE,
+        #     chunksize=50000
+        # )
+        
+        # 方式3：如果全是CSV文件，取消下面的注释使用极速版本
         # quick_merge_csv_only(
         #     input_dir=INPUT_DIR,
         #     output_file=OUTPUT_FILE,

@@ -23,7 +23,7 @@ def get_audio_files(input_dir: str) -> list:
     """
     audio_files = []
     
-    for file_path in Path(input_dir).iterdir():
+    for file_path in Path(input_dir).rglob('*'):
         if file_path.is_file() and file_path.suffix.lower() in config.SUPPORTED_FORMATS:
             audio_files.append(str(file_path))
     
@@ -43,16 +43,16 @@ def batch_transcribe(input_dir: str = None,
         model_name: 模型名称，默认使用配置文件中的设置
     """
     # 使用默认值
-    input_dir = input_dir or config.INPUT_DIR
-    output_dir = output_dir or config.OUTPUT_DIR
+    input_dir = Path(input_dir or config.INPUT_DIR)
+    output_dir = Path(output_dir or config.OUTPUT_DIR)
     
     # 检查输入目录
-    if not os.path.exists(input_dir):
+    if not input_dir.exists():
         print(f"错误: 输入目录不存在: {input_dir}")
         return
     
     # 创建输出目录
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     # 获取所有音视频文件
     audio_files = get_audio_files(input_dir)
@@ -88,13 +88,17 @@ def batch_transcribe(input_dir: str = None,
         try:
             if extract_audio_only:
                 # 仅导出音频
-                file_name = Path(audio_path).stem
-                output_audio_path = os.path.join(output_dir, f"{file_name}.mp3") # 默认导出为 mp3
-                processor.extract_audio(audio_path, output_audio_path)
+                relative_path = audio_path.relative_to(input_dir)
+                output_sub_dir = output_dir / relative_path.parent
+                output_sub_dir.mkdir(parents=True, exist_ok=True)
+                
+                file_name = audio_path.stem
+                output_audio_path = output_sub_dir / f"{file_name}.mp3" # 默认导出为 mp3
+                processor.extract_audio(str(audio_path), str(output_audio_path))
                 
                 success_count += 1
                 results.append({
-                    'file': Path(audio_path).name,
+                    'file': audio_path.name,
                     'status': 'audio_extracted',
                     'output': output_audio_path
                 })
@@ -108,7 +112,7 @@ def batch_transcribe(input_dir: str = None,
                 success_count += 1
                 total_time += result['metadata']['transcribe_time']
                 results.append({
-                    'file': Path(audio_path).name,
+                    'file': audio_path.name,
                     'status': 'success',
                     'duration': result['metadata']['duration'],
                     'transcribe_time': result['metadata']['transcribe_time']
@@ -116,10 +120,10 @@ def batch_transcribe(input_dir: str = None,
             
         except Exception as e:
             fail_count += 1
-            print(f"\n错误: 处理文件失败 - {Path(audio_path).name}")
+            print(f"\n错误: 处理文件失败 - {audio_path.name}")
             print(f"原因: {str(e)}")
             results.append({
-                'file': Path(audio_path).name,
+                'file': audio_path.name,
                 'status': 'failed',
                 'error': str(e)
             })
