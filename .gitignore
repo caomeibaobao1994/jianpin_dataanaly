@@ -59,3 +59,51 @@ output/
 *.cache
 .cache/
 
+# ==================== 数据文件 ====================
+
+# 832案例原始文件
+interview_transcription/832案例/2022年及以前/
+interview_transcription/832案例/2023年/
+interview_transcription/832案例/2024年/
+interview_transcription/832案例/2025年/
+interview_transcription/832案例/案例补充/
+interview_transcription/832案例.zip
+
+# 832案例处理报告
+interview_transcription/832案例/提取报告.txt
+interview_transcription/832案例/提取报告.json
+interview_transcription/832案例/匹配报告.txt
+interview_transcription/832案例/匹配报告.json
+
+# Word文档（案例文件）
+*.docx
+!**/README*.docx
+!**/说明*.docx
+*.doc
+
+# 测试输出目录
+interview_transcription/test_output/
+
+# 标签分析相关
+interview_transcription/tag_*.txt
+interview_transcription/tag_*.json
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 大文件和数据集
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Jupyter Notebook检查点
+.ipynb_checkpoints/
+
+# 备份文件
+*_backup.*
+*_旧版*.*
+*.bak
+

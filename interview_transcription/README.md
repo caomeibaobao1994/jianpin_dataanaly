@@ -296,11 +296,11 @@ export ZHIPU_API_KEY=your_api_key_here
 
 1. **API密钥安全**：
    - ✅ 使用命令行环境变量方式，密钥不会保存到文件
-   - ✅ `.env` 文件已被添加到 `.gitignore`
+- ✅ `.env` 文件已被添加到 `.gitignore`
    - ✅ 不要将API密钥硬编码到代码中
 
 2. **数据文件**：
-   - ✅ `input_text/` 和 `output/` 目录已被忽略
+- ✅ `input_text/` 和 `output/` 目录已被忽略
    - ✅ 这些目录中的文件不会被提交到Git
 
 3. **网络要求**：

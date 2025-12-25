@@ -75,3 +75,5 @@ if __name__ == "__main__":
         print(f"  亮点数量: {len(data['key_highlights'])}")
         print(f"  生活变化总结数量: {len(data['living_changes'])}")
         print("-" * 30)
+
+

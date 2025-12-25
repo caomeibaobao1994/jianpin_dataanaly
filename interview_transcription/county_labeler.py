@@ -123,114 +123,13 @@ class CountyLabeler:
             temperature=0.3,
         )
         content = response.choices[0].message.content.strip()
-        
-        # 移除markdown代码块标记
         if content.startswith("```json"):
             content = content[7:]
         if content.startswith("```"):
             content = content[3:]
         if content.endswith("```"):
             content = content[:-3]
-        content = content.strip()
-        
-        # 尝试解析JSON，如果失败则尝试修复
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError as e:
-            # 保存原始响应到文件以便调试
-            debug_file = Path(__file__).parent / "output" / f"json_error_{county_name.replace('/', '_')}.txt"
-            debug_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(debug_file, 'w', encoding='utf-8') as f:
-                f.write(f"错误位置: {e.pos}\n")
-                f.write(f"错误信息: {e}\n\n")
-                f.write("="*80 + "\n")
-                f.write("原始内容:\n")
-                f.write(content)
-            
-            print(f"⚠️  JSON解析失败，已保存调试信息到: {debug_file}")
-            print(f"   错误位置: {e.pos}, 错误: {e.msg}")
-            
-            # 策略1: 尝试修复未闭合的字符串
-            fixed_content = self._fix_json_strings(content, e.pos)
-            try:
-                return json.loads(fixed_content)
-            except json.JSONDecodeError as e2:
-                print(f"   修复策略1失败: {e2.msg}")
-            
-            # 策略2: 提取JSON部分（查找第一个{到最后一个}）
-            json_start = content.find('{')
-            json_end = content.rfind('}')
-            if json_start >= 0 and json_end > json_start:
-                json_part = content[json_start:json_end+1]
-                try:
-                    return json.loads(json_part)
-                except json.JSONDecodeError as e3:
-                    print(f"   提取JSON部分失败: {e3.msg}")
-            
-            # 策略3: 使用更宽松的解析（尝试修复常见的转义问题）
-            try:
-                # 转义所有未转义的换行符（在字符串值中）
-                import re
-                # 匹配 "key": "value" 中的value部分
-                def escape_newlines(match):
-                    key = match.group(1)
-                    value = match.group(2)
-                    # 转义换行符，但保留已转义的
-                    value = re.sub(r'(?<!\\)\n', '\\n', value)
-                    value = re.sub(r'(?<!\\)\r', '\\r', value)
-                    return f'{key}: "{value}"'
-                
-                pattern = r'("(?:evidence|summary|county_name)"\s*:\s*")([^"]*(?:"[^"]*"[^"]*)*)"'
-                relaxed_content = re.sub(pattern, escape_newlines, content)
-                return json.loads(relaxed_content)
-            except (json.JSONDecodeError, Exception) as e4:
-                print(f"   宽松解析失败: {e4}")
-            
-            # 最后策略：返回基本结构，包含错误信息
-            print(f"❌ 所有修复策略失败，返回基本结构")
-            return {
-                "county_name": county_name,
-                "county_tags": [],
-                "effective_measures": [],
-                "summary": f"JSON解析失败: {e.msg} (位置: {e.pos})",
-                "error": str(e),
-                "error_position": e.pos,
-                "raw_content_length": len(content),
-                "debug_file": str(debug_file)
-            }
-    
-    def _fix_json_strings(self, content: str, error_pos: int) -> str:
-        """尝试修复JSON字符串问题"""
-        import re
-        
-        # 策略1: 转义字符串值中的未转义换行符和引号
-        # 查找所有 "key": "value" 模式，修复value中的问题
-        def fix_string_value(match):
-            key_part = match.group(1)
-            value_part = match.group(2)
-            # 转义未转义的换行符、回车符和引号
-            value_part = value_part.replace('\n', '\\n').replace('\r', '\\r')
-            value_part = value_part.replace('"', '\\"') if value_part.count('"') % 2 == 1 else value_part
-            return f'{key_part}: "{value_part}"'
-        
-        # 修复 evidence 字段中的字符串（最常见的问题）
-        pattern = r'("evidence"\s*:\s*")([^"]*(?:"[^"]*"[^"]*)*)"'
-        content = re.sub(pattern, fix_string_value, content, flags=re.MULTILINE)
-        
-        # 策略2: 如果还有问题，尝试在错误位置附近添加闭合引号
-        if error_pos < len(content):
-            # 在错误位置前查找最后一个未闭合的引号
-            before_error = content[:error_pos]
-            quote_count = before_error.count('"') - before_error.count('\\"')
-            if quote_count % 2 == 1:
-                # 有未闭合的引号，尝试在错误位置前添加闭合引号
-                insert_pos = error_pos
-                while insert_pos > 0 and content[insert_pos-1] not in ['"', '\n']:
-                    insert_pos -= 1
-                if insert_pos > 0:
-                    content = content[:insert_pos] + '"' + content[insert_pos:]
-        
-        return content
+        return json.loads(content)
 
 
 def load_base_info(county_dir: Path) -> str:
